@@ -1,0 +1,7 @@
+{
+  "name": "NexusAccelerator AI Demo",
+  "description": "A clean, neutral demo page showcasing custom AI text and voice assistants trained on specific business data.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
