@@ -4,7 +4,9 @@ import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Support both AI Studio (process.env) and Vercel/Vite (import.meta.env)
+const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+const ai = new GoogleGenAI({ apiKey: apiKey as string });
 
 interface Message {
   role: 'user' | 'model';

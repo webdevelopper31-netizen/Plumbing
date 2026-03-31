@@ -3,7 +3,9 @@ import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { Mic, MicOff, Loader2, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Support both AI Studio (process.env) and Vercel/Vite (import.meta.env)
+const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+const ai = new GoogleGenAI({ apiKey: apiKey as string });
 
 export function VoiceWidget() {
   const [isConnecting, setIsConnecting] = useState(false);
