@@ -160,7 +160,7 @@ export function VoiceWidget() {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
           },
-          systemInstruction: 'You are a helpful voice assistant for MY Plumber Singapore. You answer questions about plumbing services, pricing, and availability. Be polite, concise, and professional. Keep your answers brief as they are spoken aloud.',
+          systemInstruction: 'You are a helpful voice receptionist for Cascade Plumbing Services in Denver, Colorado. Be conversational, natural, and brief. When a user greets you (e.g., "hi", "hello"), simply say hello and ask how you can help (e.g., "Hello! This is Cascade Plumbing. How can I help you today?"). DO NOT list our services or mention the $89 dispatch fee unless the user specifically asks about them. Answer questions naturally one at a time. Our services: emergency plumbing, drain cleaning, water heater repair, pipe leak fixes. Keep your answers brief as they are spoken aloud.',
         },
         callbacks: {
           onopen: () => {

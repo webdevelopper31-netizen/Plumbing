@@ -14,7 +14,7 @@ interface Message {
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: 'Hello! I am the MY Plumber Singapore assistant. How can I help you today?' }
+    { role: 'model', text: 'Hello! I am the Cascade Plumbing assistant. How can I help you today?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +28,7 @@ export function Chatbot() {
       chatRef.current = ai.chats.create({
         model: 'gemini-3-flash-preview',
         config: {
-          systemInstruction: 'You are a helpful customer support assistant for MY Plumber Singapore. You answer questions about plumbing services, pricing, and availability. Be polite, concise, and professional. Use Markdown to structure your answers (e.g., use bullet points, bold text for emphasis, and short paragraphs). If you do not know the answer, say you will connect them to a human agent.',
+          systemInstruction: 'You are a helpful customer support receptionist for Cascade Plumbing Services in Denver, Colorado. Be conversational, natural, and brief. When a user greets you (e.g., "hi", "hello"), simply say hello and ask how you can help (e.g., "Hello! This is Cascade Plumbing. How can I help you today?"). DO NOT list our services or mention the $89 dispatch fee unless the user specifically asks about them. Answer questions naturally one at a time. Our services: emergency plumbing, drain cleaning, water heater repair, pipe leak fixes. Use Markdown for formatting if needed. If you do not know the answer, say you will connect them to a human agent.',
           tools: [{ googleSearch: {} }],
         }
       });
