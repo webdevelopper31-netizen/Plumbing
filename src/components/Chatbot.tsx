@@ -1,12 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
-
-// Support both AI Studio (process.env) and Vercel/Vite (import.meta.env)
-const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-const ai = new GoogleGenAI({ apiKey: apiKey as string });
 
 interface Message {
   role: 'user' | 'model';
@@ -21,21 +16,6 @@ export function Chatbot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Create chat instance once
-  const chatRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!chatRef.current) {
-      chatRef.current = ai.chats.create({
-        model: 'gemini-3-flash-preview',
-        config: {
-          systemInstruction: 'You are a helpful customer support receptionist for Cascade Plumbing Services in Denver, Colorado. Be conversational, natural, and brief. When a user greets you (e.g., "hi", "hello"), simply say hello and ask how you can help (e.g., "Hello! This is Cascade Plumbing. How can I help you today?"). DO NOT list our services or mention the $89 dispatch fee unless the user specifically asks about them. Answer questions naturally one at a time. Our services: emergency plumbing, drain cleaning, water heater repair, pipe leak fixes. Use Markdown for formatting if needed. If you do not know the answer, say you will connect them to a human agent.',
-          tools: [{ googleSearch: {} }],
-        }
-      });
-    }
-  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,24 +26,67 @@ export function Chatbot() {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    const newMessages = [...messages, { role: 'user' as const, text: userMessage }];
+    setMessages(newMessages);
     setIsLoading(true);
 
     try {
-      const response = await chatRef.current.sendMessageStream({ message: userMessage });
+      const systemInstruction = 'You are a helpful customer support receptionist for Cascade Plumbing Services in Denver, Colorado. Be conversational, natural, and brief. When a user greets you (e.g., "hi", "hello"), simply say hello and ask how you can help (e.g., "Hello! This is Cascade Plumbing. How can I help you today?"). DO NOT list our services or mention the $89 dispatch fee unless the user specifically asks about them. Answer questions naturally one at a time. Our services: emergency plumbing, drain cleaning, water heater repair, pipe leak fixes. Use Markdown for formatting if needed. If you do not know the answer, say you will connect them to a human agent.';
       
-      let fullResponse = '';
+      const openRouterMessages = [
+        { role: 'system', content: systemInstruction },
+        ...newMessages.map(m => ({
+          role: m.role === 'model' ? 'assistant' : 'user',
+          content: m.text
+        }))
+      ];
+
+      // Call our secure backend proxy instead of OpenRouter directly
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: openRouterMessages
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
       setMessages(prev => [...prev, { role: 'model', text: '' }]);
       
-      for await (const chunk of response) {
-        const c = chunk as GenerateContentResponse;
-        if (c.text) {
-          fullResponse += c.text;
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1].text = fullResponse;
-            return newMessages;
-          });
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n').filter(line => line.trim() !== '');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const data = JSON.parse(line.slice(6));
+                const content = data.choices[0]?.delta?.content || '';
+                fullResponse += content;
+                
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1].text = fullResponse;
+                  return updated;
+                });
+              } catch (e) {
+                // Ignore parsing errors for incomplete chunks
+              }
+            }
+          }
         }
       }
     } catch (error) {
