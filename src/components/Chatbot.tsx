@@ -61,30 +61,36 @@ export function Chatbot() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullResponse = '';
+      let buffer = '';
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n').filter(line => line.trim() !== '');
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          
+          // Keep the last incomplete line in the buffer
+          buffer = lines.pop() || '';
           
           for (const line of lines) {
-            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-              try {
-                const data = JSON.parse(line.slice(6));
-                const content = data.choices[0]?.delta?.content || '';
-                fullResponse += content;
-                
-                setMessages(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1].text = fullResponse;
-                  return updated;
-                });
-              } catch (e) {
-                // Ignore parsing errors for incomplete chunks
-              }
+            const trimmedLine = line.trim();
+            if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+            if (trimmedLine === 'data: [DONE]') continue;
+            
+            try {
+              const data = JSON.parse(trimmedLine.slice(6));
+              const content = data.choices[0]?.delta?.content || '';
+              fullResponse += content;
+              
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1].text = fullResponse;
+                return updated;
+              });
+            } catch (e) {
+              console.error('Error parsing stream chunk:', e, trimmedLine);
             }
           }
         }
@@ -114,7 +120,7 @@ export function Chatbot() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 left-4 right-4 md:left-auto md:right-6 w-auto md:w-96 h-[500px] max-h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-100"
+            className="fixed bottom-20 left-4 right-4 md:bottom-24 md:left-auto md:right-6 w-auto md:w-96 h-[65vh] md:h-[500px] max-h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50 border border-gray-100"
           >
             <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
               <div>
